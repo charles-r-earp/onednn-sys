@@ -1,2 +1,2 @@
-# onednn_sys
+# onednn-sys
 Rust bindings to oneDNN 

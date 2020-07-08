@@ -1,6 +1,12 @@
 use std::{error::Error, env, fs::File, io::{BufRead, BufReader}, path::Path};
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let gpu_runtime = cfg!(feature="opencl") {
+        "OCL"   
+    }
+    else {
+        "NONE"
+    };
     let dst = cmake::Config::new("oneDNN")
         .define("DNNL_LIBRARY_TYPE", "STATIC")
         .define("DNNL_BUILD_EXAMPLES", "OFF")
@@ -61,17 +67,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     else {
         println!("cargo:warning=Unable to use OpenMP, running in SEQ mode. Performance on cpu will be signficantly reduced."); 
     }
-    if let Some(ocl_library) = ocl_library {
-        let ocl_link_path = Path::new(&ocl_library)
+    if cfg!(feature="opencl") {
+        let ocl_link_path = Path::new(&ocl_library.expect("OpenCL not found!"))
             .parent()
             .unwrap();
         println!("cargo:rustc-link-search={}", ocl_link_path.to_str().unwrap());
         println!("cargo:rustc-link-lib=OpenCL");
-        
-        println!("cargo:rustc-cfg=feature=\"opencl\"");
-    }
-    else {
-        println!("cargo:warning=Unable to use OpenCL."); 
     }
     
     let bindings = bindgen::Builder::default()

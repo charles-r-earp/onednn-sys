@@ -1,0 +1,22 @@
+[package]
+name = "onednn-sys"
+version = "0.0.1"
+authors = ["charles-r-earp <charles.r.earp@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.71"
+# ocl is used for testing only, not needed for opencl support
+ocl = { version = "0.19.3", optional = true }
+
+[build-dependencies]
+bindgen = "0.54.0"
+cmake = "0.1.44"
+cc = "1.0.57"
+
+[features]
+# opencl enabled if available 
+opencl = []
+

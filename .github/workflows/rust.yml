@@ -23,11 +23,11 @@ jobs:
     - name: Test 
       run: cargo test --tests --features ocl
     - name: Install OpenCL on Ubuntu
-      if: ${{ matrix.os == "ubuntu-latest" }}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: sudo apt install  ocl-icd-opencl-dev pocl-opencl-icd
     - name: Build With OpenCL
-      if: ${{ matrix.os == "ubuntu-latest" }}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: cargo build -vv --features ocl
     - name: Test With OpenCL
-      if: ${{ matrix.os == "ubuntu-latest" }}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: cargo test --tests -vv --features ocl

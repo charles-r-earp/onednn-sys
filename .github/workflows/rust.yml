@@ -1,0 +1,33 @@
+name: Rust
+
+on:
+  - push
+  - pull_request
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }} 
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+    - name: Build 
+      run: cargo build -vv --features ocl
+    - name: Test 
+      run: cargo test --tests --features ocl
+    - name: Install OpenCL on Ubuntu
+      if: ${{ matrix.os == "ubuntu-latest" }}
+      run: sudo apt install  ocl-icd-opencl-dev pocl-opencl-icd
+    - name: Build With OpenCL
+      if: ${{ matrix.os == "ubuntu-latest" }}
+      run: cargo build -vv --features ocl
+    - name: Test With OpenCL
+      if: ${{ matrix.os == "ubuntu-latest" }}
+      run: cargo test --tests -vv --features ocl

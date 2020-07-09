@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .define("DNNL_BUILD_EXAMPLES", "OFF")
         .define("DNNL_BUILD_TESTS", "OFF")
         .define("DNNL_CPU_RUNTIME", "OMP")
-        .define("DNNL_GPU_RUNTIME", "OCL")
+        .define("DNNL_GPU_RUNTIME", gpu_runtime)
         .build();
     println!(
         "cargo:rustc-link-search=native={}",

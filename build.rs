@@ -1,7 +1,18 @@
-use std::{error::Error, env, fs::File, io::{BufRead, BufReader}, path::Path};
+use std::{error::Error, env, fs::{self, File}, io::{BufRead, BufReader}, path::{Path, PathBuf}};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let gpu_runtime = if cfg!(feature="opencl") {
+    let out_dir = {
+        let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+        if cfg!(feature = "opencl") {
+            out_dir.join("opencl")
+        }
+        else {
+            out_dir
+        }
+    };
+    #[allow(unused_must_use)]
+    fs::create_dir(&out_dir);
+    let gpu_runtime = if cfg!(feature = "opencl") {
         "OCL"   
     }
     else {
@@ -13,6 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .define("DNNL_BUILD_TESTS", "OFF")
         .define("DNNL_CPU_RUNTIME", "OMP")
         .define("DNNL_GPU_RUNTIME", gpu_runtime)
+        .out_dir(out_dir)
         .build();
     println!(
         "cargo:rustc-link-search=native={}",
@@ -76,24 +88,39 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-link-lib=OpenCL");
     }
     
-    let bindings = bindgen::Builder::default()
-        .raw_line("#![allow(warnings)]")
-        .header("wrapper.hpp")
-        .clang_arg("--std")
-        .clang_arg("c++14")
-        .clang_arg("-I")
-        .clang_arg(dst.join("include").display().to_string())
-        .ctypes_prefix("::libc")
-        .generate_block(false)
-        .size_t_is_usize(true)
-        .rustified_non_exhaustive_enum("dnnl.*")
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        .rustfmt_bindings(true)
-        .generate()
-        .expect("Unable to create bindings.");
-    bindings.write_to_file("src/lib.rs").unwrap();
+    #[cfg(feature = "bindgen")]
+    {
+        let bindings = bindgen::Builder::default()
+            .header("wrapper.hpp")
+            .clang_arg("--std")
+            .clang_arg("c++14")
+            .clang_arg("-I")
+            .clang_arg(dst.join("include").display().to_string())
+            .ctypes_prefix("::libc")
+            .generate_block(false)
+            .size_t_is_usize(true)
+            .rustified_non_exhaustive_enum("dnnl.*")
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .rustfmt_bindings(true)
+            .generate()
+            .expect("Unable to create bindings.");
+        let bindings_file = if cfg!(feature = "opencl") {
+            "src/bindings_opencl.rs"
+        }
+        else {
+            "src/bindings.rs"
+        };
+        bindings.write_to_file(bindings_file).unwrap();
+    }
     
-    println!("cargo:rustc-link-lib=stdc++");
+    let cxx = if cfg!(any(target_os = "windows", target_os = "macos")) {
+        "libc++"
+    }
+    else {
+        "stdc++"
+    };
+    
+    println!("cargo:rustc-link-lib={}", cxx);
     
     println!("cargo:include={}", dst.join("include").display().to_string());
     

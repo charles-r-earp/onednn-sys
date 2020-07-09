@@ -13,11 +13,11 @@ libc = "0.2.71"
 ocl = { version = "0.19.3", optional = true }
 
 [build-dependencies]
-bindgen = "0.54.0"
+# generate bindings, dev only
+bindgen = { version = "0.54.0", optional = true }
 cmake = "0.1.44"
-cc = "1.0.57"
 
 [features]
-# opencl enabled if available 
 opencl = []
+
 

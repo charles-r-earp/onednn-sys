@@ -113,14 +113,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         bindings.write_to_file(bindings_file).unwrap();
     }
     
-    let cxx = if cfg!(any(target_os = "windows", target_os = "macos")) {
-        "libc++"
+    if cfg!(any(target_os = "windows", target_os = "macos")) {
+        // nothing   
     }
     else {
-        "stdc++"
+        println!("cargo:rustc-link-lib=stdc++");
     };
     
-    println!("cargo:rustc-link-lib={}", cxx);
+    
     
     println!("cargo:include={}", dst.join("include").display().to_string());
     

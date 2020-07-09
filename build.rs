@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     for line in cmake_cache_reader.lines()
         .filter_map(|line| line.ok()) { 
-        cmake_cache.push_str(&line);
+        cmake_cache.push_str(&format!("{}\n", line));
             
         if line.starts_with(ocl_library_pfx) {
             ocl_library.replace(String::from(&line[ocl_library_pfx.len()..]));

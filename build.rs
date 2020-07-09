@@ -1,7 +1,7 @@
 use std::{error::Error, env, fs::File, io::{BufRead, BufReader}, path::Path};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let gpu_runtime = cfg!(feature="opencl") {
+    let gpu_runtime = if cfg!(feature="opencl") {
         "OCL"   
     }
     else {
@@ -68,7 +68,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:warning=Unable to use OpenMP, running in SEQ mode. Performance on cpu will be signficantly reduced."); 
     }
     if cfg!(feature="opencl") {
-        let ocl_link_path = Path::new(&ocl_library.expect("OpenCL not found!"))
+        let ocl_library = ocl_library.expect("OpenCL not found!");
+        let ocl_link_path = Path::new(&ocl_library)
             .parent()
             .unwrap();
         println!("cargo:rustc-link-search={}", ocl_link_path.to_str().unwrap());
@@ -94,7 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     println!("cargo:rustc-link-lib=stdc++");
     
-    env::set_var("ONEDNN_SYS_INCLUDE", dst.join("include").display().to_string());
+    println!("cargo:include={}", dst.join("include").display().to_string());
     
     println!("cargo:rustc-rerun-if-changed=wrapper.hpp");
     

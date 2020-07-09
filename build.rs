@@ -47,8 +47,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let mut omp_library_pfx = None;
     
+    let mut cmake_cache = String::new();
+    
     for line in cmake_cache_reader.lines()
         .filter_map(|line| line.ok()) { 
+        cmake_cache.push_str(&line);
+            
         if line.starts_with(ocl_library_pfx) {
             ocl_library.replace(String::from(&line[ocl_library_pfx.len()..]));
         }
@@ -68,6 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
+    println!("cargo:warning={}", cmake_cache);
     
     if let (Some(omp_library), Some(omp_lib_name)) = (omp_library, omp_lib_name) {
         let omp_link_path = Path::new(&omp_library)

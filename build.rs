@@ -118,8 +118,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         bindings.write_to_file(bindings_file).unwrap();
     }
     
-    if cfg!(any(target_os = "windows", target_os = "macos")) {
+    if cfg!(target_os = "windows") {
         // nothing   
+    }
+    else if cfg!(target_os = "macos") {
+        println!("cargo:rustc-link-lib=libc++");
     }
     else {
         println!("cargo:rustc-link-lib=stdc++");

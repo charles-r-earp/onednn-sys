@@ -1,30 +1,12 @@
-use std::{error::Error, env, fs::{self, File}, io::{BufRead, BufReader}, path::{Path, PathBuf}};
+use std::{error::Error, fs::File, io::{BufRead, BufReader}, path::Path};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let out_dir = {
-        let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-        if cfg!(feature = "opencl") {
-            out_dir.join("opencl")
-        }
-        else {
-            out_dir
-        }
-    };
-    #[allow(unused_must_use)]
-    fs::create_dir(&out_dir);
-    let gpu_runtime = if cfg!(feature = "opencl") {
-        "OCL"   
-    }
-    else {
-        "NONE"
-    };
     let dst = cmake::Config::new("oneDNN")
         .define("DNNL_LIBRARY_TYPE", "STATIC")
         .define("DNNL_BUILD_EXAMPLES", "OFF")
         .define("DNNL_BUILD_TESTS", "OFF")
         .define("DNNL_CPU_RUNTIME", "OMP")
-        .define("DNNL_GPU_RUNTIME", gpu_runtime)
-        .out_dir(out_dir)
+        .define("DNNL_GPU_RUNTIME", "NONE")
         .build();
     println!(
         "cargo:rustc-link-search=native={}",
@@ -37,14 +19,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rustc-link-lib=static=dnnl");
     let mut omp_library = None;
     let mut omp_lib_name = None;
-    let mut ocl_library = None;
     
     let cmake_cache_path = dst.join("build").join("CMakeCache.txt");
     let cmake_cache_reader = BufReader::new(File::open(cmake_cache_path)?);
   
     let omp_lib_name_pfx = "OpenMP_CXX_LIB_NAMES:STRING=";
-    let ocl_library_pfx = "OpenCL_LIBRARY:FILEPATH=";
-    
     let mut omp_library_pfx = None;
     
     let mut cmake_cache = String::new();
@@ -53,10 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter_map(|line| line.ok()) { 
         cmake_cache.push_str(&format!("{}\n", line));
             
-        if line.starts_with(ocl_library_pfx) {
-            ocl_library.replace(String::from(&line[ocl_library_pfx.len()..]));
-        }
-        else if line.starts_with(omp_lib_name_pfx) {
+        if line.starts_with(omp_lib_name_pfx) {
             let _omp_lib_name = line[omp_lib_name_pfx.len()..]
                 .split(";")
                 .take(1)
@@ -72,25 +48,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
-    println!("cargo:warning={}", cmake_cache);
     
     if let (Some(omp_library), Some(omp_lib_name)) = (omp_library, omp_lib_name) {
         let omp_link_path = Path::new(&omp_library)
             .parent()
             .unwrap();
-        println!("cargo:rustc-link-search={}", omp_link_path.to_str().unwrap());
+        let omp_link_path = omp_link_path.to_str().unwrap();
+        println!("cargo:rustc-link-search={}", omp_link_path);
         println!("cargo:rustc-link-lib={}", omp_lib_name);
+        println!("cargo:omp={}", omp_lib_name);
+        println!("cargo:omp_lib={}", omp_link_path);
     }
     else {
         println!("cargo:warning=Unable to use OpenMP, running in SEQ mode. Performance on cpu will be signficantly reduced."); 
-    }
-    if cfg!(feature="opencl") {
-        let ocl_library = ocl_library.expect("OpenCL not found!");
-        let ocl_link_path = Path::new(&ocl_library)
-            .parent()
-            .unwrap();
-        println!("cargo:rustc-link-search={}", ocl_link_path.to_str().unwrap());
-        println!("cargo:rustc-link-lib=OpenCL");
     }
     
     #[cfg(feature = "bindgen")]
@@ -109,13 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .rustfmt_bindings(true)
             .generate()
             .expect("Unable to create bindings.");
-        let bindings_file = if cfg!(feature = "opencl") {
-            "src/bindings_opencl.rs"
-        }
-        else {
-            "src/bindings.rs"
-        };
-        bindings.write_to_file(bindings_file).unwrap();
+        bindings.write_to_file("src/bindings.rs").unwrap();
     }
     
     if cfg!(target_os = "windows") {

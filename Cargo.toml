@@ -13,8 +13,6 @@ links = "dnnl"
 libc = "0.2.71"
 
 [build-dependencies]
-# generate bindings, dev only
-bindgen = { version = "0.54.0", optional = true }
 cmake = "0.1.44"
 
 
